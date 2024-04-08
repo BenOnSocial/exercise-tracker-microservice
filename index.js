@@ -54,6 +54,10 @@ const exerciseSchema = new Schema({
 const Exercise = mongoose.model("Exercise", exerciseSchema);
 
 app.post('/api/users/:id/exercises', async (req, res) => {
+  console.log(`userid: ${req.params.id}, date: ${req.body.date}`)
+
+
+
   let date = Date.parse(req.body.date);
   if (isNaN(date)) {
     date = Date.now();
@@ -85,14 +89,14 @@ app.get('/api/users/:_id/logs', async (req, res) => {
   }
 
   let query = Exercise.find({ username: user.username });
-  if (req.params.from) {
-    query = query.where('date').gte(new Date(req.params.from));
+  if (req.query.from) {
+    query = query.where('date').gte(Date.parse(req.query.from));
   }
-  if (req.params.to) {
-    query = query.where('date').lte(new Date(req.params.to));
+  if (req.query.to) {
+    query = query.where('date').lte(Date.parse(req.query.to));
   }
-  if (req.params.limit) {
-    query = query.limit(parseInt(req.params.limit));
+  if (req.query.limit) {
+    query = query.limit(parseInt(req.query.limit));
   }
 
   const results = await query.sort('-date').exec();
