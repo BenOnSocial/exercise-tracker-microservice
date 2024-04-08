@@ -55,7 +55,7 @@ const Exercise = mongoose.model("Exercise", exerciseSchema);
 
 app.post('/api/users/:id/exercises', async (req, res) => {
   let date = Date.parse(req.body.date);
-  if (!date) {
+  if (isNaN(date)) {
     date = Date.now();
   }
 
