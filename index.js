@@ -31,7 +31,7 @@ app.get('/api/users', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
   console.log(`Creating ${req.body.username}`);
-  const user = await User.create({ username: req.body.username });
+  const user = await User.create({username: req.body.username});
 
   if (!user) {
     return res.status(400).send('User not created');
@@ -48,18 +48,16 @@ const exerciseSchema = new Schema({
   username: { type: String, required: true },
   description: { type: String, required: true },
   duration: { type: Number, required: true },
-  date: { type: String, required: true }
+  date: { type: Number, required: true }
 });
 
 const Exercise = mongoose.model("Exercise", exerciseSchema);
 
 app.post('/api/users/:id/exercises', async (req, res) => {
-  let unix = Date.parse(req.body.date);
-  if (!unix) {
-    unix = Date.now();
+  let date = Date.parse(req.body.date);
+  if (!date) {
+    date = Date.now();
   }
-
-  const date = new Date(unix).toDateString();
 
   const user = await User.findById(req.params.id, "username _id");
 
@@ -74,7 +72,7 @@ app.post('/api/users/:id/exercises', async (req, res) => {
     username: user.username,
     description: exercise.description,
     duration: exercise.duration,
-    date: exercise.date,
+    date: new Date(exercise.date).toDateString(),
     _id: user._id
   });
 });
@@ -87,14 +85,14 @@ app.get('/api/users/:_id/logs', async (req, res) => {
   }
 
   let query = Exercise.find({ username: user.username });
-  if (req.query.from) {
-    query = query.where('date').gte(new Date(req.query.from));
+  if (req.params.from) {
+    query = query.where('date').gte(new Date(req.params.from));
   }
-  if (req.query.to) {
-    query = query.where('date').lte(new Date(req.query.to));
+  if (req.params.to) {
+    query = query.where('date').lte(new Date(req.params.to));
   }
-  if (req.query.limit) {
-    query = query.limit(parseInt(req.query.limit));
+  if (req.params.limit) {
+    query = query.limit(parseInt(req.params.limit));
   }
 
   const results = await query.sort('-date').exec();
@@ -104,7 +102,7 @@ app.get('/api/users/:_id/logs', async (req, res) => {
     exercises.push({
       description: exercise.description,
       duration: exercise.duration,
-      date: exercise.date
+      date: new Date(exercise.date).toDateString()
     });
   }
 
