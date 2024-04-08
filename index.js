@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const cors = require('cors')
 require('dotenv').config()
+const bodyParser = require("body-parser");
 
 app.use(cors())
 app.use(express.static('public'))
@@ -10,6 +11,110 @@ app.get('/', (req, res) => {
 });
 
 
+app.use(bodyParser.urlencoded({ extended: false }));
+
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
+mongoose.connect(process.env.MONGO_URI);
+
+
+const userSchema = new Schema({
+  username: { type: String, required: true }
+});
+
+const User = mongoose.model("User", userSchema);
+
+app.get('/api/users', async (req, res) => {
+  const users = await User.find({}, "username _id");
+  res.send(users);
+});
+
+app.post('/api/users', async (req, res) => {
+  console.log(`Creating ${req.body.username}`);
+  const user = await User.create({ username: req.body.username });
+
+  if (!user) {
+    return res.status(400).send('User not created');
+  }
+
+  res.json({
+    username: user.username,
+    _id: user._id
+  });
+});
+
+
+const exerciseSchema = new Schema({
+  username: { type: String, required: true },
+  description: { type: String, required: true },
+  duration: { type: Number, required: true },
+  date: { type: String, required: true }
+});
+
+const Exercise = mongoose.model("Exercise", exerciseSchema);
+
+app.post('/api/users/:id/exercises', async (req, res) => {
+  let unix = Date.parse(req.body.date);
+  if (!unix) {
+    unix = Date.now();
+  }
+
+  const date = new Date(unix).toDateString();
+
+  const user = await User.findById(req.params.id, "username _id");
+
+  const exercise = await Exercise.create({
+    username: user.username,
+    description: req.body.description,
+    duration: req.body.duration,
+    date: date,
+  })
+
+  res.json({
+    username: user.username,
+    description: exercise.description,
+    duration: exercise.duration,
+    date: exercise.date,
+    _id: user._id
+  });
+});
+
+
+app.get('/api/users/:_id/logs', async (req, res) => {
+  const user = await User.findById(req.params._id);
+  if (!user) {
+    return res.status(400).send('User not found');
+  }
+
+  let query = Exercise.find({ username: user.username });
+  if (req.query.from) {
+    query = query.where('date').gte(new Date(req.query.from));
+  }
+  if (req.query.to) {
+    query = query.where('date').lte(new Date(req.query.to));
+  }
+  if (req.query.limit) {
+    query = query.limit(parseInt(req.query.limit));
+  }
+
+  const results = await query.sort('-date').exec();
+
+  let exercises = [];
+  for (let exercise of results) {
+    exercises.push({
+      description: exercise.description,
+      duration: exercise.duration,
+      date: exercise.date
+    });
+  }
+
+  res.json({
+    username: user.username,
+    count: exercises.length,
+    _id: user._id,
+    log: exercises
+  });
+});
 
 
 
